@@ -18,12 +18,12 @@ export function Header({ cartItemCount = 0, onCartClick }: HeaderProps) {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
         <Link href="/">
-          <a className="flex items-center space-x-2 hover-elevate active-elevate-2 rounded-md px-3 py-2" data-testid="link-home">
+          <div className="flex items-center space-x-2 hover-elevate active-elevate-2 rounded-md px-3 py-2 cursor-pointer" data-testid="link-home">
             <div className="flex flex-col">
               <span className="font-heading text-xl font-bold text-foreground">Mede-Mede</span>
               <span className="text-xs text-muted-foreground">Area 25</span>
             </div>
-          </a>
+          </div>
         </Link>
 
         {/* Navigation */}
@@ -31,44 +31,49 @@ export function Header({ cartItemCount = 0, onCartClick }: HeaderProps) {
           {isAuthenticated ? (
             <>
               <Link href="/shop">
-                <a className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2" data-testid="link-shop">
+                <div className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2 cursor-pointer" data-testid="link-shop">
                   Shop
-                </a>
+                </div>
               </Link>
               <Link href="/orders">
-                <a className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2" data-testid="link-orders">
+                <div className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2 cursor-pointer" data-testid="link-orders">
                   My Orders
-                </a>
+                </div>
               </Link>
               <Link href="/loyalty">
-                <a className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2" data-testid="link-loyalty">
+                <div className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2 cursor-pointer" data-testid="link-loyalty">
                   Loyalty
-                </a>
+                </div>
               </Link>
               <Link href="/events">
-                <a className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2" data-testid="link-events">
+                <div className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2 cursor-pointer" data-testid="link-events">
                   Events
-                </a>
+                </div>
               </Link>
               {isAdmin && (
                 <Link href="/analytics">
-                  <a className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2" data-testid="link-analytics">
+                  <div className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2 cursor-pointer" data-testid="link-analytics">
                     Analytics
-                  </a>
+                  </div>
                 </Link>
               )}
             </>
           ) : (
             <>
+              <Link href="/">
+                <div className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2 cursor-pointer" data-testid="link-home-nav">
+                  Home
+                </div>
+              </Link>
               <Link href="/signin">
-                <a className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2" data-testid="link-signin-nav">
+                <div className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2 cursor-pointer" data-testid="link-signin-nav">
                   Sign In
-                </a>
+                </div>
               </Link>
               <Link href="/signup">
-                <a className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2" data-testid="link-signup-nav">
+                <div className="text-sm font-medium text-foreground hover-elevate active-elevate-2 rounded-md px-3 py-2 cursor-pointer" data-testid="link-signup-nav">
                   Sign Up
-                </a>
+                </div>
               </Link>
             </>
           )}

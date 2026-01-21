@@ -63,7 +63,7 @@ export function ProductCard({ product, onAddToCart, isAddingToCart }: ProductCar
         <div className="flex items-center justify-between pt-2">
           <div>
             <p className="font-accent text-2xl font-semibold text-accent" data-testid={`text-price-${product.id}`}>
-              MWK {product.pricePerGram.toLocaleString()}
+              MWK {product.pricePerGram?.toLocaleString() || 0}
             </p>
             <p className="text-xs text-muted-foreground">per gram</p>
           </div>

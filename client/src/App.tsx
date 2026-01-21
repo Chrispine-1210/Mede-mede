@@ -25,7 +25,13 @@ function PublicRoutes() {
       <Route path="/" component={Landing} />
       <Route path="/signin" component={SignIn} />
       <Route path="/signup" component={SignUp} />
-      <Route component={NotFound} />
+      {/* Catch-all for unauthenticated users, redirecting to landing */}
+      <Route path="/:rest*">
+        {() => {
+          window.location.replace("/");
+          return null;
+        }}
+      </Route>
     </Switch>
   );
 }
@@ -52,6 +58,8 @@ function AdminRoutes() {
       <Route path="/analytics" component={Analytics} />
       <Route path="/shop" component={Shop} />
       <Route path="/orders" component={Orders} />
+      <Route path="/loyalty" component={Loyalty} />
+      <Route path="/events" component={Events} />
       <Route path="/settings" component={AccountSettings} />
       <Route component={NotFound} />
     </Switch>
@@ -63,6 +71,10 @@ function DriverRoutes() {
     <Switch>
       <Route path="/" component={DriverDashboard} />
       <Route path="/driver" component={DriverDashboard} />
+      <Route path="/shop" component={Shop} />
+      <Route path="/orders" component={Orders} />
+      <Route path="/loyalty" component={Loyalty} />
+      <Route path="/events" component={Events} />
       <Route path="/settings" component={AccountSettings} />
       <Route component={NotFound} />
     </Switch>
@@ -85,6 +97,13 @@ function Router() {
 
   if (!isAuthenticated) {
     return <PublicRoutes />;
+  }
+
+  // Redirect based on role if on root path
+  if (window.location.pathname === "/") {
+    if (user?.role === "admin") return <AdminRoutes />;
+    if (user?.role === "driver") return <DriverRoutes />;
+    return <CustomerRoutes />;
   }
 
   if (user?.role === "admin") {
