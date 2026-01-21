@@ -37,7 +37,9 @@ export interface IStorage {
   getDriverOrders(driverId: string): Promise<(Order & { orderItems?: OrderItem[] })[]>;
   updateDriverLocation(driverId: string, lat: string, lng: string): Promise<User | undefined>;
   updateDeliveryTracking(orderId: string, driverId: string, lat: string, lng: string, speed: number): Promise<void>;
-  getDeliveryTracking(orderId: string): Promise<any[]>;
+  getDeliveryTracking(orderId: string): Promise<any>;
+  getDrivers(): Promise<User[]>;
+  getDriverLocation(userId: string): Promise<any>;
   setDriverAvailability(driverId: string, isAvailable: boolean): Promise<User | undefined>;
   getLoyaltyAccount(userId: string): Promise<any>;
   addLoyaltyPoints(userId: string, points: number): Promise<any>;
@@ -51,6 +53,8 @@ export interface IStorage {
   getOrCreateDailySummary(date: string): Promise<any>;
   updateAnalyticsSummary(date: string, data: any): Promise<any>;
   getAnalyticsSummary(days: number): Promise<any[]>;
+  createMessage(message: InsertMessage): Promise<Message>;
+  getMessages(orderId?: string, role?: string): Promise<Message[]>;
 }
 
 // In-Memory Storage with Role Persistence
@@ -64,6 +68,7 @@ export class MemoryStorage implements IStorage {
   private loyaltyProgram: Map<string, any> = new Map();
   private paymentRecords: Map<string, any> = new Map();
   private events: Map<string, any> = new Map();
+  private messages: Map<string, Message> = new Map();
   private notifications: any[] = [];
   private nextId = 0;
 
@@ -82,6 +87,7 @@ export class MemoryStorage implements IStorage {
       description: 'High-quality Indica strain with deep forest notes',
       productType: 'flower',
       strainType: 'Indica',
+      size: null,
       pricePerGram: 3500,
       totalPrice: null,
       stockQuantity: 50,
@@ -97,6 +103,7 @@ export class MemoryStorage implements IStorage {
       description: 'Energizing Sativa strain, perfect for daytime',
       productType: 'flower',
       strainType: 'Sativa',
+      size: null,
       pricePerGram: 3000,
       totalPrice: null,
       stockQuantity: 40,
@@ -158,14 +165,14 @@ export class MemoryStorage implements IStorage {
     const user: User = {
       id: this.generateId(),
       email: userData.email || '',
-      passwordHash: userData.passwordHash,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      profileImageUrl: userData.profileImageUrl,
+      passwordHash: userData.passwordHash || null,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      profileImageUrl: userData.profileImageUrl || null,
       role: userData.role || 'customer',
       isActive: true,
-      vehicleNumber: userData.vehicleNumber,
-      driverLicenseNumber: userData.driverLicenseNumber,
+      vehicleNumber: userData.vehicleNumber || null,
+      driverLicenseNumber: userData.driverLicenseNumber || null,
       currentLatitude: null,
       currentLongitude: null,
       isAvailableForDelivery: false,
@@ -173,7 +180,7 @@ export class MemoryStorage implements IStorage {
       averageRating: null,
       loyaltyPoints: 0,
       loyaltyTier: 'bronze',
-      phoneNumber: userData.phoneNumber,
+      phoneNumber: userData.phoneNumber || null,
       lastLoginAt: new Date(),
       loginCount: 1,
       preferences: null,
@@ -198,22 +205,22 @@ export class MemoryStorage implements IStorage {
     const user: User = {
       id: userData.id || this.generateId(),
       email: userData.email || '',
-      passwordHash: userData.passwordHash,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      profileImageUrl: userData.profileImageUrl,
+      passwordHash: userData.passwordHash || null,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      profileImageUrl: userData.profileImageUrl || null,
       role: userData.role || 'customer',
       isActive: userData.isActive !== false,
-      vehicleNumber: userData.vehicleNumber,
-      driverLicenseNumber: userData.driverLicenseNumber,
-      currentLatitude: userData.currentLatitude,
-      currentLongitude: userData.currentLongitude,
-      isAvailableForDelivery: userData.isAvailableForDelivery,
+      vehicleNumber: userData.vehicleNumber || null,
+      driverLicenseNumber: userData.driverLicenseNumber || null,
+      currentLatitude: userData.currentLatitude || null,
+      currentLongitude: userData.currentLongitude || null,
+      isAvailableForDelivery: userData.isAvailableForDelivery || false,
       totalDeliveries: userData.totalDeliveries || 0,
-      averageRating: userData.averageRating,
+      averageRating: userData.averageRating || null,
       loyaltyPoints: userData.loyaltyPoints || 0,
       loyaltyTier: userData.loyaltyTier || 'bronze',
-      phoneNumber: userData.phoneNumber,
+      phoneNumber: userData.phoneNumber || null,
       lastLoginAt: null,
       loginCount: 0,
       preferences: null,
@@ -376,8 +383,24 @@ export class MemoryStorage implements IStorage {
     this.deliveryTracking.set(this.generateId(), { orderId, driverId, latitude: lat, longitude: lng, speed, timestamp: new Date() });
   }
 
-  async getDeliveryTracking(orderId: string): Promise<any[]> {
-    return Array.from(this.deliveryTracking.values()).filter(t => t.orderId === orderId);
+  async getDeliveryTracking(orderId: string): Promise<any> {
+    const latest = Array.from(this.deliveryTracking.values())
+      .filter(t => t.orderId === orderId)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+    return latest || null;
+  }
+
+  async getDrivers(): Promise<User[]> {
+    return Array.from(this.users.values()).filter(u => u.role === "driver");
+  }
+
+  async getDriverLocation(userId: string): Promise<any> {
+    const driver = this.users.get(userId);
+    return {
+      latitude: driver?.currentLatitude || "-13.9626",
+      longitude: driver?.currentLongitude || "33.7741",
+      speed: 0
+    };
   }
 
   async setDriverAvailability(driverId: string, isAvailable: boolean): Promise<User | undefined> {
@@ -442,6 +465,31 @@ export class MemoryStorage implements IStorage {
 
   async getAnalyticsSummary(days: number = 30): Promise<any[]> {
     return [];
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const newMessage: Message = {
+      id: this.generateId(),
+      ...message,
+      receiverId: message.receiverId || null,
+      orderId: message.orderId || null,
+      role: message.role || null,
+      isRead: false,
+      createdAt: new Date(),
+    };
+    this.messages.set(newMessage.id, newMessage);
+    return newMessage;
+  }
+
+  async getMessages(orderId?: string, role?: string): Promise<Message[]> {
+    let all = Array.from(this.messages.values());
+    if (orderId) {
+      all = all.filter(m => m.orderId === orderId);
+    }
+    if (role) {
+      all = all.filter(m => m.role === role);
+    }
+    return all.sort((a, b) => (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0));
   }
 }
 

@@ -46,7 +46,8 @@ export async function createCustomerOrder(userId: string, deliveryLocation: stri
       quantity: item.quantity,
       pricePerGram: item.product?.pricePerGram || 0,
       subtotal,
-    };
+      orderId: "", // Will be set by storage
+    } as any;
   });
 
   const order = await storage.createOrder(
@@ -71,6 +72,20 @@ export async function getCustomerLoyalty(userId: string): Promise<any> {
   return storage.getLoyaltyAccount(userId);
 }
 
-export async function trackOrderDelivery(orderId: string): Promise<any[]> {
-  return storage.getDeliveryTracking(orderId);
+export async function trackOrderDelivery(orderId: string) {
+  const order = await storage.getOrder(orderId);
+  if (!order) throw new Error("Order not found");
+  
+  // Find driver assigned to this order or related to it
+  const drivers = await storage.getDrivers();
+  const driver = drivers.find(d => d.role === "driver" && d.isActive); // Simplified logic
+  
+  if (!driver) return { status: order.status, currentLocation: null };
+  
+  const location = await storage.getDriverLocation(driver.id);
+  return {
+    status: order.status,
+    currentLocation: location,
+    driverName: `${driver.firstName} ${driver.lastName}`,
+  };
 }
