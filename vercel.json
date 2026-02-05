@@ -1,0 +1,9 @@
+{
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "framework": "nextjs",
+    "nodeVersion": "18.x",
+    "rewrites": [
+        { "source": "/(.*)", "destination": "/server/index.html" }
+    ]
+}
