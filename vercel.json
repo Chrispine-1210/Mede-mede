@@ -1,8 +1,6 @@
 {
     "buildCommand": "npm run build",
     "outputDirectory": "dist/client",
-    "framework": "nextjs",
-    "nodeVersion": "18.x",
     "rewrites": [
     {
         "source": "/api/(.*)",
