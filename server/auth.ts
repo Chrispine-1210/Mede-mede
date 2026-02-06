@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 
 import { storage } from "./storage";
-import { insertUserSchema } from "../shared/schema";
+import { insertUserSchema } from "@shared/schema";
 
 /* =========================
    ENV
