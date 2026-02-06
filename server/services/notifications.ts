@@ -1,12 +1,16 @@
-import { storage } from '../storage';
+// Notifications module
+// Handles SMS (Twilio) and Email (SendGrid) notifications with logging
+
+import { storage } from "../storage";
 
 const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_PHONE = process.env.TWILIO_PHONE;
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+const SENDGRID_FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || "noreply@mede-mede.mw";
 
-// SMS notification via Twilio
+// ----------------- SMS -----------------
 export async function sendSMSNotification(
   phoneNumber: string,
   message: string,
@@ -15,22 +19,21 @@ export async function sendSMSNotification(
 ) {
   try {
     if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE) {
-      console.warn('Twilio not configured');
-      // Log notification locally
+      console.warn("Twilio not configured, logging locally");
       if (userId) {
         await storage.logNotification({
           userId,
           orderId,
-          type: 'sms',
+          type: "sms",
           message,
           recipient: phoneNumber,
-          status: 'pending',
+          status: "pending",
         });
       }
       return;
     }
 
-    const twilio = require('twilio');
+    const twilio = require("twilio");
     const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
 
     const result = await client.messages.create({
@@ -43,32 +46,32 @@ export async function sendSMSNotification(
       await storage.logNotification({
         userId,
         orderId,
-        type: 'sms',
+        type: "sms",
         message,
         recipient: phoneNumber,
-        status: 'sent',
+        status: "sent",
         externalId: result.sid,
       });
     }
 
     return result;
   } catch (error) {
-    console.error('SMS notification error:', error);
+    console.error("SMS notification error:", error);
     if (userId) {
       await storage.logNotification({
         userId,
         orderId,
-        type: 'sms',
+        type: "sms",
         message,
         recipient: phoneNumber,
-        status: 'failed',
+        status: "failed",
       });
     }
     throw error;
   }
 }
 
-// Email notification via SendGrid
+// ----------------- Email -----------------
 export async function sendEmailNotification(
   email: string,
   subject: string,
@@ -78,28 +81,27 @@ export async function sendEmailNotification(
 ) {
   try {
     if (!SENDGRID_API_KEY) {
-      console.warn('SendGrid not configured');
-      // Log notification locally
+      console.warn("SendGrid not configured, logging locally");
       if (userId) {
         await storage.logNotification({
           userId,
           orderId,
-          type: 'email',
+          type: "email",
           subject,
           message,
           recipient: email,
-          status: 'pending',
+          status: "pending",
         });
       }
       return;
     }
 
-    const sgMail = require('@sendgrid/mail');
+    const sgMail = require("@sendgrid/mail");
     sgMail.setApiKey(SENDGRID_API_KEY);
 
     const msg = {
       to: email,
-      from: process.env.SENDGRID_FROM_EMAIL || 'noreply@mede-mede.mw',
+      from: SENDGRID_FROM_EMAIL,
       subject,
       text: message,
       html: `<p>${message}</p>`,
@@ -111,34 +113,34 @@ export async function sendEmailNotification(
       await storage.logNotification({
         userId,
         orderId,
-        type: 'email',
+        type: "email",
         subject,
         message,
         recipient: email,
-        status: 'sent',
-        externalId: result[0].messageId,
+        status: "sent",
+        externalId: result?.[0]?.messageId,
       });
     }
 
     return result;
   } catch (error) {
-    console.error('Email notification error:', error);
+    console.error("Email notification error:", error);
     if (userId) {
       await storage.logNotification({
         userId,
         orderId,
-        type: 'email',
+        type: "email",
         subject,
         message,
         recipient: email,
-        status: 'failed',
+        status: "failed",
       });
     }
     throw error;
   }
 }
 
-// Notify order status changes
+// ----------------- Order Status -----------------
 export async function notifyOrderStatusChange(
   userId: string,
   orderId: string,
@@ -147,39 +149,39 @@ export async function notifyOrderStatusChange(
   email?: string
 ) {
   const statusMessages: Record<string, string> = {
-    pending: 'Your order has been received and is being processed.',
-    processing: 'Your order is being prepared for delivery.',
-    assigned: 'A driver has been assigned to your delivery.',
-    out_for_delivery: 'Your order is on the way!',
-    completed: 'Your order has been delivered. Thank you for your purchase!',
-    cancelled: 'Your order has been cancelled.',
+    pending: "Your order has been received and is being processed.",
+    processing: "Your order is being prepared for delivery.",
+    assigned: "A driver has been assigned to your delivery.",
+    out_for_delivery: "Your order is on the way!",
+    delivered: "Your order has been delivered. Thank you for your purchase!",
+    cancelled: "Your order has been cancelled.",
   };
 
   const message = statusMessages[status] || `Your order status: ${status}`;
   const subject = `Order Update - Status: ${status}`;
 
-  const promises = [];
+  const tasks: Promise<any>[] = [];
 
   if (phoneNumber) {
-    promises.push(
-      sendSMSNotification(phoneNumber, message, orderId, userId).catch(e =>
-        console.error('SMS failed:', e)
+    tasks.push(
+      sendSMSNotification(phoneNumber, message, orderId, userId).catch((e) =>
+        console.error("SMS notification failed:", e)
       )
     );
   }
 
   if (email) {
-    promises.push(
-      sendEmailNotification(email, subject, message, orderId, userId).catch(e =>
-        console.error('Email failed:', e)
+    tasks.push(
+      sendEmailNotification(email, subject, message, orderId, userId).catch((e) =>
+        console.error("Email notification failed:", e)
       )
     );
   }
 
-  await Promise.all(promises);
+  await Promise.all(tasks);
 }
 
-// Notify low inventory
+// ----------------- Low Inventory -----------------
 export async function notifyLowInventory(
   productId: string,
   productName: string,
@@ -192,6 +194,6 @@ export async function notifyLowInventory(
   try {
     await sendEmailNotification(adminEmail, subject, message);
   } catch (error) {
-    console.error('Admin notification error:', error);
+    console.error("Low inventory email failed:", error);
   }
 }
